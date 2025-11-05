@@ -7,8 +7,23 @@ from dotenv import load_dotenv
 from openai import AzureOpenAI
 from pydantic import BaseModel
 
-# Load environment variables
+# Load environment variables from .env file (local development)
 load_dotenv()
+
+
+def get_secret(key: str) -> Optional[str]:
+    """Get secret from Streamlit secrets or environment variables
+    
+    Priority:
+    1. Streamlit secrets (for production/Streamlit Cloud)
+    2. Environment variables (for local development with .env)
+    """
+    # Try Streamlit secrets first (production)
+    if hasattr(st, 'secrets') and key in st.secrets:
+        return st.secrets[key]
+    
+    # Fallback to environment variables (local development)
+    return os.getenv(key)
 
 
 class PromptWithExamples(BaseModel):
@@ -23,15 +38,15 @@ class PromptGenerator:
     def __init__(self, model_name: str = 'gpt-4o-mini'):
         self.model_name = model_name
         
-        # Select credentials based on model
+        # Select credentials based on model (using get_secret for compatibility)
         if model_name == 'gpt-4o-mini':
-            api_key = os.getenv("GPT4_MINI_API_KEY")
-            endpoint = os.getenv("GPT4_MINI_ENDPOINT")
-            self.deployment = os.getenv("GPT4_MINI_DEPLOYMENT")
+            api_key = get_secret("GPT4_MINI_API_KEY")
+            endpoint = get_secret("GPT4_MINI_ENDPOINT")
+            self.deployment = get_secret("GPT4_MINI_DEPLOYMENT")
         else:  # gpt-o3-mini
-            api_key = os.getenv("GPT3_MINI_API_KEY")
-            endpoint = os.getenv("GPT3_MINI_ENDPOINT")
-            self.deployment = os.getenv("GPT3_MINI_DEPLOYMENT")
+            api_key = get_secret("GPT3_MINI_API_KEY")
+            endpoint = get_secret("GPT3_MINI_ENDPOINT")
+            self.deployment = get_secret("GPT3_MINI_DEPLOYMENT")
         
         # Validate credentials
         if not all([api_key, endpoint, self.deployment]):
